@@ -1,2 +1,6 @@
 ppm
 ppm.exe
+.dart_tool
+.idea
+.packages
+pitmap.svg

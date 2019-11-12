@@ -1,0 +1,9 @@
+name: ppm
+version: 1.0.0
+author: "Dean Iverson <deanriverson@gmail.com>"
+description: "A simple and stupid pit table map generator"
+environment:
+  sdk: '>=2.6.0 <3.0.0'
+
+dev_dependencies:
+  test: '^1.5.1'
