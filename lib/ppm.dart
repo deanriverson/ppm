@@ -1,14 +1,20 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 
 const inFileName = 'options.json';
 const outFileName = 'pitmap.svg';
+
+const double pageWidthIn = 8.5;
+const double pageHeightIn = 11;
+const double pageWidthPx = 772;
+const double pageHeightPx = 1000;
+
 const int columnCount = 6;
 const int tableRadiusPx = 34;
+const int headerHeightPx = 100;
 
 main() async {
   final teamNums = await readOptionsFile();
-  print('team nums $teamNums');
   writeOutputFile(teamNums);
 }
 
@@ -16,51 +22,29 @@ Future<List<int>> readOptionsFile() async {
   final jsonStr = await File(inFileName).readAsString();
   final opts = json.decode(jsonStr);
   return List<int>.from(opts['teamNumbers'] as Iterable<dynamic>);
-
 }
 
 void writeOutputFile(List<int> teamNums) {
   final outputFile = File(outFileName);
   final sink = outputFile.openWrite();
 
-  print('ppm writing file "$outFileName"');
+  print('ppm: team nums: $teamNums');
+  print('ppm: writing file "$outFileName"');
 
   sink.write(createSvgHeader());
   sink.write(createDefs());
+
   sink.write(createTitleText());
   sink.write(createNorthArrow());
-
-  teamNums.sort();
-  for(int i = 0; i < teamNums.length; ++i) {
-    final col = i % columnCount;
-    final row = i ~/ columnCount;
-    print('writing table at $col,$row');
-
-    sink.write(createTable(teamNums[i], row, col));
-  }
+  sink.write(createTables(teamNums));
 
   sink.write(createSvgFooter());
-
   sink.close();
-}
-
-String createTable(int teamNum, int row, int col) {
-  final x = (col + 1) * 92;
-  final y = (row + 1) * 100 + 50;
-
-  return '''
-    <circle cx="$x" cy="$y" r="$tableRadiusPx" stroke-width="1" stroke="black" fill="white"></circle>
-    <circle cx="$x" cy="$y" r="$tableRadiusPx" filter="url(#shadow)" fill="black" ></circle>
-    <text x="$x" y="$y" text-anchor="middle" dominant-baseline="middle" font-family="Roboto-Bold, Roboto" font-size="18" font-weight="bold" fill="#1E487C">
-      $teamNum
-    </text>
-
-  ''';
 }
 
 String createSvgHeader() => '''
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="8.5in" height="11in" viewBox="0 0 772 1000" version="1.1" 
+<svg width="${pageWidthIn}in" height="${pageHeightIn}in" viewBox="0 0 $pageWidthPx $pageHeightPx" version="1.1" 
   xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 ''';
 
@@ -76,14 +60,15 @@ String createDefs() => '''
   </defs>
 ''';
 
+//  <path d="M0,0 H$pageWidthPx V$pageHeightPx H0 V0" fill="white" stroke="black" stroke-width="1"/>
 String createTitleText() => '''
-  <text id="Pit-Area" font-family="Roboto-Bold, Roboto" font-size="60" font-weight="bold" fill="#1E487C">
-      <tspan x="189.438477" y="60">Pit Area</tspan>
+  <text id="Pit-Area" font-family="Roboto-Bold, Roboto" font-size="60" font-weight="bold" fill="#1E487C" text-anchor="middle" dominant-baseline="middle">
+      <tspan x="386" y="50">Pit Area</tspan>
   </text>
 ''';
 
 String createNorthArrow() => '''
-  <g id="Group" transform="translate(518.000000, 17.000000)">
+  <g id="Group" transform="translate(700.000000, 17.000000)">
       <text id="N" font-family="Roboto-Bold, Roboto" font-size="36" font-weight="bold" fill="#1E487C">
           <tspan x="0.291015625" y="70">N</tspan>
       </text>
@@ -99,4 +84,42 @@ String createNorthArrow() => '''
   </g>
 ''';
 
-String createSvgFooter() =>'</svg>\n';
+String createTables(List<int> teamNums) {
+  teamNums.sort();
+
+  final objectSize = 2 * tableRadiusPx;
+  final rowCount = (teamNums.length / columnCount).ceil();
+
+  final hSpaceLeftOver = pageWidthPx - (columnCount * objectSize);
+  final hSpacing = hSpaceLeftOver / (columnCount + 1);
+
+  final vSpaceLeftOver = pageHeightPx - headerHeightPx - (rowCount * objectSize);
+  final vSpacing = vSpaceLeftOver / (rowCount + 1);
+
+  var resultStr = '';
+  for (int i = 0; i < teamNums.length; ++i) {
+    final col = i % columnCount;
+    final row = i ~/ columnCount;
+
+    final hExtraSpace = (col + 1) > (columnCount / 2) ? hSpacing : 0;
+
+    final vExtraSpace = (row + 1) > (rowCount / 2) ? vSpacing : 0;
+
+    final x = hSpacing + col * (hSpacing + objectSize) + hExtraSpace;
+    final y = pageHeightPx - (vSpacing + row * (vSpacing + objectSize) + vExtraSpace);
+
+    resultStr += createTable(teamNums[i], x, y);
+  }
+
+  return resultStr;
+}
+
+String createTable(int teamNum, double x, double y) => '''
+  <circle cx="$x" cy="$y" r="$tableRadiusPx" stroke-width="1" stroke="black" fill="white"></circle>
+  <circle cx="$x" cy="$y" r="$tableRadiusPx" filter="url(#shadow)" fill="black" ></circle>
+  <text x="$x" y="$y" text-anchor="middle" dominant-baseline="middle" font-family="Roboto-Bold, Roboto" font-size="18" font-weight="bold" fill="#1E487C">
+    $teamNum
+  </text>
+''';
+
+String createSvgFooter() => '</svg>\n';
