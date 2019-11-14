@@ -21,7 +21,7 @@ object with a `teamNumbers` property that is an array of numbers.  An example is
 
 ```json
 {
-  "teamNumbers": [ 10000, 10001, 10002, 10003, ... ]
+  "teamNumbers": [ 10000, 10001, 10002, 10003 ]
 }
 ```
 
@@ -31,6 +31,6 @@ directory that contains the options.json that specifies the team numbers.
 
 ```bash
 $> ./ppm
-ppm: team nums: [10000, 10001, 10002, 10003, ... ]
+ppm: team nums: [10000, 10001, 10002, 10003 ]
 ppm: writing file "pitmap.svg"
 ```
